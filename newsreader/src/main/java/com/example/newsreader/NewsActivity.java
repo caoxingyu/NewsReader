@@ -1,35 +1,36 @@
 package com.example.newsreader;
 
-import android.app.Activity;
+
 import android.content.Intent;
 import android.os.Bundle;
 
 import android.support.v7.app.AppCompatActivity;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.newsreader.bean.NewsBean;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 
 public class NewsActivity extends AppCompatActivity{
 
+    protected GestureDetector mGestureDetector;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.news_detail);
-        setTitle(R.string.app_name);
+
 
         //接收intent传递过来的数据
         Intent intent=this.getIntent();
         final NewsBean news=(NewsBean)intent.getSerializableExtra("news");
+        final  String title=intent.getStringExtra("title");
+        setTitle(title);
 
         TextView titleView=(TextView)findViewById(R.id.news_title);
         TextView pubDateView=(TextView)findViewById(R.id.news_pubDate);
@@ -37,25 +38,16 @@ public class NewsActivity extends AppCompatActivity{
 
         titleView.setText(news.title);
 
-        //显示新闻发布时间
-        try {
-            SimpleDateFormat sdf=new SimpleDateFormat("EEE,d MMM yyyy HH:mm:ss 'GMT'", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-            Date d=sdf.parse(news.pubDate);
+        pubDateView.setText("(发布日期："+news.pubDate+")");
 
-            SimpleDateFormat sdf2=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.US);
-            String s=sdf2.format(d);
-            pubDateView.setText("(发布日期："+s+")");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         //WebView参数设置(是否支持多窗口，是否支持缩放)
         WebSettings settings=webView.getSettings();
         settings.setSupportMultipleWindows(false);
         settings.setSupportZoom(false);
         //加载显示新闻描述内容
-        webView.loadDataWithBaseURL(null,news.description,null,"utf-8",null);
+
+        webView.loadDataWithBaseURL(null,news.content,"text/html", "utf-8",null);
 
         //返回动作，单击返回则结束当前NewsActivity
         ImageView back=(ImageView)findViewById(R.id.imageViewBack);
@@ -71,12 +63,60 @@ public class NewsActivity extends AppCompatActivity{
         browser.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+//                WebView webView=new WebView(NewsActivity.this);
+//                System.out.println("点击了浏览器");
                 webView.loadUrl(news.link);
             }
         });
+
+        webView.setWebViewClient(new WebViewClient(){
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                // TODO Auto-generated method stub
+                //返回值是true的时候控制去WebView打开，为false调用系统浏览器或第三方浏览器
+                view.loadUrl(url);
+                return true;
+            }
+        });
+        webView.setOnTouchListener(new View.OnTouchListener() {
+                                       @Override
+                                       public boolean onTouch(View v, MotionEvent event) {
+                                           mGestureDetector.onTouchEvent(event);
+                                           return false;
+                                       }
+                                   });
+
+                mGestureDetector = new GestureDetector( new GestureDetector.SimpleOnGestureListener() {
+                    @Override
+                    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+//                if(e1.getRawX() - e2.getRawX() > 200){
+//                    showNext();//向左滑动，显示图片列表
+//                    return true;
+//                }
+
+                        if (e2.getRawX() - e1.getRawX() > 230) {
+                            finish();//向右滑动
+                            overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
+                            return true;
+                        }
+
+                       return super.onFling(e1, e2, velocityX, velocityY);
+
+                    }
+                });
 
 
 
     }
 
+
+
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+        mGestureDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
+
+    }
 }

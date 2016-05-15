@@ -29,32 +29,39 @@
             android:id="@+id/radioButton1"
             style="@style/tab_item_style"
             android:background="@drawable/selector_tab_background"
-            android:drawableTop="@drawable/selector_tab_1"
-            android:text="首页"
+            android:textColor="@color/selector_tab_1"
+            android:text="国内"
             />
 
         <RadioButton
             android:id="@+id/radioButton2"
             style="@style/tab_item_style"
             android:background="@drawable/selector_tab_background"
-            android:drawableTop="@drawable/selector_tab_2"
-            android:text="新闻"
+            android:textColor="@color/selector_tab_1"
+            android:text="国际"
              />
 
         <RadioButton
             android:id="@+id/radioButton3"
             style="@style/tab_item_style"
             android:background="@drawable/selector_tab_background"
-            android:drawableTop="@drawable/selector_tab_3"
-            android:text="组图"
+            android:textColor="@color/selector_tab_1"
+            android:text="军事"
              />
 
         <RadioButton
             android:id="@+id/radioButton4"
             style="@style/tab_item_style"
             android:background="@drawable/selector_tab_background"
-            android:drawableTop="@drawable/selector_tab_4"
-            android:text="更多"
+            android:textColor="@color/selector_tab_1"
+            android:text="财经"
+            />
+        <RadioButton
+            android:id="@+id/radioButton5"
+            style="@style/tab_item_style"
+            android:background="@drawable/selector_tab_background"
+            android:drawableRight="@drawable/selector_tab_4"
+
             />
     </RadioGroup>
 </LinearLayout>

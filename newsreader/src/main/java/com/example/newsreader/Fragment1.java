@@ -27,10 +27,16 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,10 +60,14 @@ public class Fragment1 extends Fragment {
     private ListView listView1;
     private NewsAdapter adapter;
 
+    String httpUrl = "http://apis.baidu.com/showapi_open_bus/channel_news/search_news";
+    String httpArg = "channelId=5572a108b3cdc86cf39001cd&page=1&needContent=0&needHtml=1";
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         layoutView=inflater.inflate(R.layout.fragment1,null);
+
         listView1=(ListView)layoutView.findViewById(R.id.listView);
 
         //创建并显示一个进度条，设定可以被用户打断
@@ -71,6 +81,7 @@ public class Fragment1 extends Fragment {
                 Intent intent=new Intent(Fragment1.this.getActivity(),NewsActivity.class);
                 NewsBean news=newsList.get(position);
                 intent.putExtra("news",news);
+                intent.putExtra("title","国内焦点");
                 startActivity(intent);
             }
         });
@@ -78,43 +89,51 @@ public class Fragment1 extends Fragment {
             @Override
             public void run() {
 
-
-                //通过HttpGet获取Rss数据
-                HttpClient client = new DefaultHttpClient();
-                HttpGet get = new HttpGet("http://news.163.com/special/00011K6L/rss_newstop.xml");
-
+                String jsonResult = request(httpUrl, httpArg);
+                System.out.println(jsonResult);
                 try {
-                    HttpResponse response = client.execute(get);
-                    //检查服务器返回的响应码，200表示成功
-                    if (response.getStatusLine().getStatusCode() == 200) {
-                        //获取网络连接的输入流。然后解析收到的RSS数据
-                        InputStream stream = response.getEntity().getContent();
-                        List<Map<String, String>> items = getRssItems(stream);
+                    getRssItems(jsonResult);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
-                        //先清空数组列表
-                        newsList.clear();
 
-                        //将解析后的Rss数据转换成Bean对象保存
-                        for (Map<String, String> item : items) {
-                            NewsBean news = new NewsBean();
-                            news.title = item.get("title");
-                            news.description = item.get("description");
-                            news.link = item.get("link");
-                            news.pubDate = item.get("pubDate");
-                            news.guid = item.get("guid");
-                            newsList.add(news);
-                        }
+//                //通过HttpGet获取Rss数据
+//                HttpClient client = new DefaultHttpClient();
+//                HttpGet get = new HttpGet("http://news.163.com/special/00011K6L/rss_newstop.xml");
+//
+//                try {
+//                    HttpResponse response = client.execute(get);
+//                    //检查服务器返回的响应码，200表示成功
+//                    if (response.getStatusLine().getStatusCode() == 200) {
+//                        //获取网络连接的输入流。然后解析收到的RSS数据
+//                        InputStream stream = response.getEntity().getContent();
+//                        List<Map<String, String>> items = getRssItems(stream);
+//
+//                        //先清空数组列表
+//                        newsList.clear();
+//
+//                        //将解析后的Rss数据转换成Bean对象保存
+//                        for (Map<String, String> item : items) {
+//                            NewsBean news = new NewsBean();
+//                            news.title = item.get("title");
+//                            news.description = item.get("description");
+//                            news.link = item.get("link");
+//                            news.pubDate = item.get("pubDate");
+//                            news.guid = item.get("guid");
+//                            newsList.add(news);
+//                        }
                         //数据加载完毕，通知ListView显示
                       //  adapter.notifyDataSetChanged();
                         Message msg=mUIHandler.obtainMessage(MSG_NEWS_LOADED);
                         //向主线程发送消息时，还可以携带数据
                         //msg.obj=newsList;
                         mUIHandler.sendMessage(msg);
-
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+//
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
 
                 //销毁进度条
                 pd.dismiss();
@@ -128,50 +147,116 @@ public class Fragment1 extends Fragment {
         return layoutView;
     }
 
-    public List<Map<String,String>> getRssItems(InputStream xml) throws Exception{
-        //itemList表示新闻的列表
-        List<Map<String,String>> itemList=new ArrayList<Map<String, String>>();
-        Map<String,String> item=new HashMap<String, String>();
-        String name,value;
-        int currNode=NODE_NONE;
-        XmlPullParser pullParser= Xml.newPullParser();
-        pullParser.setInput(xml,"UTF-8");
-        int event=pullParser.getEventType();
-        while (event != XmlPullParser.END_DOCUMENT) {
-            switch (event) {
-                //节点元素开始，比如<title>
-                case XmlPullParser.START_TAG:
-                    name = pullParser.getName();
-                    //确定当前是channel还是item节点
-                    if ("channel".equalsIgnoreCase(name)) {
-                        currNode = NODE_CHANEEL;
-                        break;
-                    } else if ("item".equalsIgnoreCase(name)) {
-                        currNode = NODE_ITEM;
-                        break;
-                    }
 
-                    //如果当前是在item节点中，则提取item节点的子元素，
-                    if (currNode == NODE_ITEM) {
-                        value = pullParser.nextText();
-                        item.put(name, value);
-                    }
-                    break;
+    /**
+     * @param  httpUrl
+     *            :请求接口
+     * @param httpArg
+     *            :参数
+     * @return 返回结果
+     */
+    public static String request(String httpUrl, String httpArg) {
+        BufferedReader reader = null;
+        String result = null;
+        StringBuffer sbf = new StringBuffer();
+        httpUrl = httpUrl + "?" + httpArg;
 
-                //节点元素结束，比如</title>
-                case XmlPullParser.END_TAG:
-                    name = pullParser.getName();
-                    if ("item".equals(name)) {
-                        itemList.add(item);
-                        item = new HashMap<String, String>();
-                    }
-                    break;
-
-            }  //of switch
-            //继续处理下一节点
-            event = pullParser.next();
+        try {
+            URL url = new URL(httpUrl);
+            HttpURLConnection connection = (HttpURLConnection) url
+                    .openConnection();
+            connection.setRequestMethod("GET");
+            // 填入apikey到HTTP header
+            connection.setRequestProperty("apikey",  "0c3a92793aec19894d356d433b9b2622");
+            connection.connect();
+            InputStream is = connection.getInputStream();
+            reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+            String strRead = null;
+            while ((strRead = reader.readLine()) != null) {
+                sbf.append(strRead);
+                sbf.append("\r\n");
+            }
+            reader.close();
+            result = sbf.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return itemList;
+        return result;
+    }
+
+//    public List<Map<String,String>> getRssItems(InputStream xml) throws Exception{
+//        //itemList表示新闻的列表
+//        List<Map<String,String>> itemList=new ArrayList<Map<String, String>>();
+//        Map<String,String> item=new HashMap<String, String>();
+//        String name,value;
+//        int currNode=NODE_NONE;
+//        XmlPullParser pullParser= Xml.newPullParser();
+//        pullParser.setInput(xml,"UTF-8");
+//        int event=pullParser.getEventType();
+//        while (event != XmlPullParser.END_DOCUMENT) {
+//            switch (event) {
+//                //节点元素开始，比如<title>
+//                case XmlPullParser.START_TAG:
+//                    name = pullParser.getName();
+//                    //确定当前是channel还是item节点
+//                    if ("channel".equalsIgnoreCase(name)) {
+//                        currNode = NODE_CHANEEL;
+//                        break;
+//                    } else if ("item".equalsIgnoreCase(name)) {
+//                        currNode = NODE_ITEM;
+//                        break;
+//                    }
+//
+//                    //如果当前是在item节点中，则提取item节点的子元素，
+//                    if (currNode == NODE_ITEM) {
+//                        value = pullParser.nextText();
+//                        item.put(name, value);
+//                    }
+//                    break;
+//
+//                //节点元素结束，比如</title>
+//                case XmlPullParser.END_TAG:
+//                    name = pullParser.getName();
+//                    if ("item".equals(name)) {
+//                        itemList.add(item);
+//                        item = new HashMap<String, String>();
+//                    }
+//                    break;
+//
+//            }  //of switch
+//            //继续处理下一节点
+//            event = pullParser.next();
+//        }
+//        return itemList;
+//    }
+
+    public void getRssItems(String jsonData) throws Exception{
+
+        String name,value;
+
+        JSONObject jsonObject1=new JSONObject(jsonData);
+        JSONObject jsonObject2=jsonObject1.getJSONObject("showapi_res_body");
+        JSONObject jsonObject3=jsonObject2.getJSONObject("pagebean");
+        JSONArray jsonArray=jsonObject3.getJSONArray("contentlist");
+
+        newsList.clear();
+        for (int i=0;i<jsonArray.length();i++){
+            JSONObject jsonObjectSon= (JSONObject)jsonArray.opt(i);
+            String description=jsonObjectSon.getString("desc");
+            String link=jsonObjectSon.getString("link");
+            String date=jsonObjectSon.getString("pubDate");
+            String title=jsonObjectSon.getString("title");
+            String content=jsonObjectSon.getString("html");
+            NewsBean newsBean=new NewsBean();
+            newsBean.description=description;
+            newsBean.pubDate=date;
+            newsBean.link=link;
+            newsBean.title=title;
+            newsBean.content=content;
+
+            newsList.add(newsBean);
+
+        }
     }
 
     private Handler mUIHandler=new Handler() {
@@ -221,7 +306,7 @@ public class Fragment1 extends Fragment {
             TextView newsTitle=(TextView) convertView.findViewById(R.id.news_title);
             TextView newsDescr=(TextView) convertView.findViewById(R.id.news_description);
             TextView newsPubdate=(TextView) convertView.findViewById(R.id.news_pubDate);
-            ImageView newsIcon=(ImageView)convertView.findViewById(R.id.news_icon);
+
             //获取第position行的数据
             NewsBean item=newsItems.get(position);
             //将第position行的数据显示到布局界面中

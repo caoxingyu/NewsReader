@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">NewsReader</string>
+    <string name="app_name">今日焦点</string>
     <string name="title_activity_news">NewsActivity</string>
 </resources>

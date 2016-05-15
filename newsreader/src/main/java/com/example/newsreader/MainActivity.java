@@ -15,7 +15,7 @@ import android.widget.RadioGroup;
 public class MainActivity extends AppCompatActivity {
 
     private RadioGroup navGroup;
-    private String tabs[]={"首页","新闻","组图","更多"};
+    private String tabs[]={"国内","国际","军事","财经"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
