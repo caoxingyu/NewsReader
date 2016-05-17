@@ -17,22 +17,24 @@
             android:id="@+id/news_title"
             android:textColor="#0000ff"
             android:layout_width="match_parent"
-            android:layout_height="20dp"
-            android:textSize="14sp"
+            android:layout_height="21dp"
+            android:textSize="16sp"
             android:text="news title"/>
 
         <TextView
             android:id="@+id/news_description"
-            android:textColor="@color/android:black"
+            android:textColor="#3f3f3f"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:textSize="16sp"
+            android:layout_height="85dp"
+            android:textSize="18sp"
+            android:layout_marginRight="10dp"
             android:text="news description"/>
         <TextView
             android:id="@+id/news_pubDate"
             android:textColor="#3f3f3f"
             android:layout_width="match_parent"
             android:layout_height="18dp"
+            android:layout_marginBottom="5dp"
             android:textSize="14sp"
             android:text="2016-4-21"/>
 

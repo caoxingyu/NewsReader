@@ -10,6 +10,7 @@ import android.os.Message;
 import android.support.annotation.Nullable;
 
 
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,7 +41,7 @@ import java.util.List;
 /**
  * Created by cxy on 2016/4/20.
  */
-public class Fragment2 extends Fragment {
+public class Fragment2 extends Fragment implements SwipeRefreshLayout.OnRefreshListener{
 
 
     private static final int MSG_NEWS_LOADED=100;   //指示Rss新闻数据已获取
@@ -49,6 +50,7 @@ public class Fragment2 extends Fragment {
     private List<NewsBean> newsList=new ArrayList<NewsBean>();  //新闻条目数组
     private ListView listView1;
     private NewsAdapter adapter;
+    private SwipeRefreshLayout refresh_layout = null;//刷新控件
 
     String httpUrl = "http://apis.baidu.com/showapi_open_bus/channel_news/search_news";
     String httpArg = "channelId=5572a108b3cdc86cf39001ce&page=1&needContent=0&needHtml=1";
@@ -61,6 +63,9 @@ public class Fragment2 extends Fragment {
 
         //创建并显示一个进度条，设定可以被用户打断
         pd=ProgressDialog.show(getActivity(),"请稍候...","正在加载数据",true,true);
+        refresh_layout = (SwipeRefreshLayout) layoutView.findViewById(R.id.refresh_layout);
+        // refresh_layout.setProgressBackgroundColorSchemeColor(Color.GRAY);
+        refresh_layout.setColorSchemeResources(android.R.color.holo_green_light, android.R.color.holo_blue_light, android.R.color.holo_red_light);//设置跑动的颜色值
 
         adapter=new NewsAdapter(newsList);
         listView1.setAdapter(adapter);
@@ -70,10 +75,12 @@ public class Fragment2 extends Fragment {
                 Intent intent=new Intent(Fragment2.this.getActivity(),NewsActivity.class);
                 NewsBean news=newsList.get(position);
                 intent.putExtra("news",news);
-                intent.putExtra("title","国际焦点");
+               // intent.putExtra("title","国际焦点");
                 startActivity(intent);
             }
         });
+
+        refresh_layout.setOnRefreshListener(this);//设置下拉的监听
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -86,7 +93,7 @@ public class Fragment2 extends Fragment {
                     e.printStackTrace();
                 }
 
-
+              
 
                 Message msg=mUIHandler.obtainMessage(MSG_NEWS_LOADED);
                 //向主线程发送消息时，还可以携带数据
@@ -181,6 +188,7 @@ public class Fragment2 extends Fragment {
                 case MSG_NEWS_LOADED:
                     //更新ListView显示
                     adapter.notifyDataSetChanged();
+                    refresh_layout.setRefreshing(false);
                     break;
             }
         }
@@ -232,6 +240,29 @@ public class Fragment2 extends Fragment {
             //将行布局返回给ListView组件显示
             return convertView;
         }
+    }
+
+    @Override
+    public void onRefresh() {
+        new Thread(new Runnable() {//下拉触发的函数，这里是谁1s然后加入一个数据，然后更新界面
+            @Override
+            public void run() {
+                try {
+                    //  System.out.println("下拉啦");
+                    Thread.sleep(1000);
+                    String jsonResult = request(httpUrl, httpArg);
+                    getRssItems(jsonResult);
+                    Message msg=mUIHandler.obtainMessage(MSG_NEWS_LOADED);
+                    mUIHandler.sendMessage(msg);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }).start();
+
+
     }
 
 
